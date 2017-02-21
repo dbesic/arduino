@@ -21,13 +21,13 @@
 #include "Adafruit_BMP085_U.h"
 
 //strings
-#define STR_TEMP "Temperatura"
+#define STR_TEMP "Temperature"
 #define STR_TEMP_UNIT " c"
-#define STR_HUM "Vlaga"
+#define STR_HUM "Humidity"
 #define STR_HUM_UNIT "%"
-#define STR_PRES "Tlak"
+#define STR_PRES "Pressure"
 #define STR_PRES_UNIT " hPa"
-#define STR_MQ "Kvaliteta zraka"
+#define STR_MQ "Air quality"
 #define STR_MQ_UNIT " c/mil."
 
 //pin setup
