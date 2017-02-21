@@ -1,0 +1,185 @@
+/*
+ The circuit:
+ * LCD RS pin to digital pin 12
+ * LCD Enable pin to digital pin 11
+ * LCD D4 pin to digital pin 5
+ * LCD D5 pin to digital pin 4
+ * LCD D6 pin to digital pin 3
+ * LCD D7 pin to digital pin 2
+ * LCD R/W pin to ground
+ * 10K resistor:
+ * ends to +5V and ground
+ * wiper to LCD VO pin (pin 3)
+ */
+
+// include the library code:
+#include "LiquidCrystal.h"
+#include "MQ135.h"
+#include "DHT.h"
+#include "Wire.h"
+#include "Adafruit_Sensor.h"
+#include "Adafruit_BMP085_U.h"
+
+//strings
+#define STR_TEMP "Temperatura"
+#define STR_TEMP_UNIT " c"
+#define STR_HUM "Vlaga"
+#define STR_HUM_UNIT "%"
+#define STR_PRES "Tlak"
+#define STR_PRES_UNIT " hPa"
+#define STR_MQ "Kvaliteta zraka"
+#define STR_MQ_UNIT " c/mil."
+
+//pin setup
+#define dhtPin 9     // what digital pin we're connected to
+#define trigPin 6
+#define echoPin 7
+#define lcdBLpin 8
+#define mqPin A7
+
+//definitions
+#define dhtType DHT22
+#define max_count 3
+#define recog_distance 20 //cm
+#define sleepTime 5000 //ms
+#define distanceCheckSleep 1000 //ms
+
+#define pressureOffset 15 //
+
+// init of objects
+//                RS, E, D4,D5,D6,D7
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+// gas sensor
+MQ135 gasSensor = MQ135(mqPin);
+// dht sensor
+DHT dht(dhtPin, dhtType);
+// BMP180 pressure sensor (unique id)
+Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
+
+float ppm;
+int sensorValue;
+int counter;
+
+
+
+void setup() {
+  // set up the LCD's number of columns and rows:
+  lcd.begin(16, 2);
+  
+  //set pin mode
+  pinMode(trigPin, OUTPUT);
+  pinMode(lcdBLpin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  
+  //set pin state
+  digitalWrite(dhtPin, LOW);
+  digitalWrite(mqPin, LOW);
+  
+  //start dht sensor
+  dht.begin();
+  
+  //start pressure sensor
+  bmp.begin();
+  
+  counter=0;
+}
+
+void loop() {
+
+  if(counter == 0){
+    getDistance();
+  }
+  if(counter > 0 && counter <= max_count){
+    lcdOn();
+    
+    getTemperature();
+    
+    getHumidity();
+    
+    getPressureAndSeaLevelAltitude();
+
+    getAQ();
+    
+    
+    counter++;
+  }else{
+    lcdOff();
+    counter=0;
+  }
+    
+
+}
+
+void lcdOn(){
+  digitalWrite(lcdBLpin, HIGH);
+}
+
+void lcdOff(){
+  digitalWrite(lcdBLpin, LOW);
+  lcd.clear();
+}
+
+void printLCD(String r1, String r2){
+  lcd.clear();
+  lcd.setCursor(0, 0); 
+  lcd.print(r1);
+  lcd.setCursor(16-r2.length(), 1); 
+  lcd.print(r2);
+}
+
+
+
+void getAQ(){
+  String mq = String(gasSensor.getPPM());
+  String mq_text = String(mq + STR_MQ_UNIT);
+  printLCD(STR_MQ, mq_text);
+  delay(sleepTime);
+}
+
+void getHumidity(){
+  
+  String hum = String(dht.readHumidity());
+  String hum_txt = String(hum + STR_HUM_UNIT);
+  printLCD(STR_HUM, hum_txt);
+  delay(sleepTime);
+}
+
+
+void getPressureAndSeaLevelAltitude(){
+  /* Get a new sensor event */ 
+  sensors_event_t event;
+  bmp.getEvent(&event);
+  
+  float current_pressure = event.pressure + pressureOffset;
+  String pres = String(current_pressure);
+  String pres_txt = String(pres + STR_PRES_UNIT);
+  printLCD(STR_PRES, pres_txt);
+  delay(sleepTime);
+  
+}
+
+void getTemperature(){
+  String temp = String(dht.readTemperature());
+  String temp_txt = String(temp + STR_TEMP_UNIT);
+  printLCD(STR_TEMP, temp_txt);
+  delay(sleepTime);
+}
+
+void getDistance(){
+  long duration, distance;
+  digitalWrite(trigPin, LOW);  // Added this line
+  delayMicroseconds(2); // Added this line
+  digitalWrite(trigPin, HIGH);
+  
+  delayMicroseconds(10); // Added this line
+  digitalWrite(trigPin, LOW);
+  
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration/2) / 29.1;
+
+  if(distance <= recog_distance){
+    counter++;
+  }else{
+    delay(distanceCheckSleep);
+  }
+}
