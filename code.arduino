@@ -1,4 +1,5 @@
 /*
+ LED 16x2 module
  The circuit:
  * LCD RS pin to digital pin 12
  * LCD Enable pin to digital pin 11
@@ -21,6 +22,7 @@
 #include "Adafruit_BMP085_U.h"
 
 //strings
+//adjust this to your language / metrics
 #define STR_TEMP "Temperature"
 #define STR_TEMP_UNIT " c"
 #define STR_HUM "Humidity"
@@ -87,9 +89,11 @@ void setup() {
 void loop() {
 
   if(counter == 0){
+    //check if the sensor is detecting anyone, if not, just run the sensor
     getDistance();
   }
   if(counter > 0 && counter <= max_count){
+    //turn on the LCD
     lcdOn();
     
     getTemperature();
@@ -103,6 +107,7 @@ void loop() {
     
     counter++;
   }else{
+    //turn off the lcd
     lcdOff();
     counter=0;
   }
@@ -165,6 +170,9 @@ void getTemperature(){
   delay(sleepTime);
 }
 
+//check if there's any object in front of sensor
+// if yes, trigger other sensors and turn on the LCD
+// i no, sleep a bit and repeat
 void getDistance(){
   long duration, distance;
   digitalWrite(trigPin, LOW);  // Added this line
